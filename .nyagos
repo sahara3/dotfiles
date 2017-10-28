@@ -1,0 +1,37 @@
+-- This is a sample .nyagos written with Lua.
+-- Edit and put it on %USERPROFILE% or %HOME%
+
+-- Simple Prompt for CMD.EXE
+nyagos.env.prompt = '$L' .. nyagos.getenv('COMPUTERNAME') .. ':$P$G$_$$$s'
+
+-- Coloring Prompt for NYAGOS.exe
+nyagos.prompt = function(this)
+    local wd = nyagos.getwd()
+    local env = nyagos.env
+    local home = env.home or env.userprofile
+    local home_len = home:len()
+    if wd:sub(1, home_len) == home then
+        wd = "~" .. wd:sub(home_len + 1)
+    end
+    local title = wd .. " - NYAGOS"
+    if nyagos.elevated() then
+        return nyagos.default_prompt('\n$e[40;31;1m'..this..'$e[37;1m', title)
+    else
+        return nyagos.default_prompt('\n$e[40;36;1m'..this..'$e[37;1m', title)
+    end
+end
+
+-- Slash for filename completion
+nyagos.completion_slash = true
+
+-- Environment variables
+set {
+    -- PATH='C:\\somewhere\\bin;' .. nyagos.getenv('PATH')
+}
+
+-- Aliases
+alias {
+    emacs = 'C:\\opt\\emacs\\bin\\runemacs.exe'
+}
+
+-- vim:set ft=lua: --

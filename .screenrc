@@ -1,0 +1,22 @@
+# prefix key [Ctrl]-t
+escape ^t^t
+
+# General
+startup_message off
+vbell           off
+msgminwait      0
+autodetach      on
+defscrollback   1000
+
+# http://d.hatena.ne.jp/naoya/20051223/1135351050
+# List window
+hardstatus on
+hardstatus alwayslastline "%{.Wb}.: %-w%{.RW}%n %t%{-}%+w :. %=[%Y-%m-%d %02c]"
+
+# http://paranoid.dip.jp/kaworu/2008-03-06-1.html
+# Resize Window
+termcapinfo xterm* 'is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l'
+termcapinfo kterm* 'is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l'
+
+# binding keys
+bind w windowlist -b

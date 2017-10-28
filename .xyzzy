@@ -1,0 +1,454 @@
+;;; ~/.xyzzy  -*- Mode:lisp -*-
+
+;; 漢字コード・改行コードの初期設定（euc-jp/lf）
+;(setq *default-fileio-encoding* *encoding-euc-jp*)
+;(setq *default-eol-code* *eol-lf*)
+
+;;---------------------------
+;; 個人用load-path
+;;---------------------------
+; 後ろにつく謎の path をうまく消去
+(setq last-path (car (last *load-path*)))
+(unless (equal
+	 (car (last *load-path*))
+	 (merge-pathnames "lisp" (si:system-root)))
+  (setq *load-path* (butlast *load-path*)))
+
+; 自分用 lisp の path を追加
+(pushnew "~/.xyzzy.d/lisp" *load-path*)
+
+; キーワードファイル置き場も
+(pushnew "~/.xyzzy.d/lisp" *keyword-load-path*)
+
+;;---------------------------
+;; SKK
+;;---------------------------
+(require "skk/autoloads")
+(use-package "skk")
+(setq skk:*skk-large-jisyo* (concat (si:system-root) "etc/SKK-JISYO.L"))
+(global-set-key '(#\C-x #\C-j) 'skk-mode)
+(global-set-key '(#\C-x #\j) 'skk-auto-fill-mode)
+
+
+;;---------------------------
+;; グローバルキーバインド
+;;---------------------------
+; 文字数カウント
+(defun count-buffer-char ()
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (count-matches ".")))
+(global-set-key '(#\C-c #\c) 'count-buffer-char)
+
+; 文字列補完
+(require "dabbrev")
+(global-set-key #\M-/ 'dabbrev-expand)
+
+
+;;---------------------------
+;; 細かな設定
+;;---------------------------
+; ステータスバーを豪華に
+(setq *status-bar-format* "cpuT")
+
+; shell-mode のシェル
+;(setq *eshell* "zsh -i")
+
+; auto-fill の桁数
+(setq fill-column 70)
+
+; utf-8:lf に変更する関数
+(defun linux-buffer ()
+  (interactive)
+  (change-fileio-encoding *encoding-utf8n*)
+  (change-eol-code 0)
+  (set-buffer-modified-p t)
+  )
+(export '(linux-buffer))
+
+; sjis:crlf に変更する関数
+(defun windows-buffer ()
+  (interactive)
+  (change-fileio-encoding *encoding-sjis*)
+  (change-eol-code 1)
+  (set-buffer-modified-p t)
+  )
+(export '(windows-buffer))
+
+
+;;---------------------------
+;; ファイラ関連
+;;---------------------------
+; ジャンプディレクトリ
+(setq *filer-directories*
+      (list
+       (cons "[home]"         (map-backslash-to-slash (si:getenv "HOME")))
+       (cons "[workspace]"    (merge-pathnames
+			       "workspace"
+			       (map-backslash-to-slash (si:getenv "HOME"))))
+       (cons "[Desktop]"      (map-backslash-to-slash
+			       (get-special-folder-location :desktop)))
+       '("[opt]"              . "C:/opt")
+       (cons "[xyzzy]"        (concat (si:system-root)))
+       (cons "[lisp]"         (merge-pathnames
+			       ".xyzzy.d/lisp"
+			       (map-backslash-to-slash (si:getenv "HOME"))))
+       '("[Program Files]"    . "C:/Program Files")
+       '("  C:/"              . "C:/")
+       (cons "[Windows]"      (get-windows-directory))
+       (cons "[System]"       (get-system-directory))
+       (cons "[Temp]"         (or (map-backslash-to-slash (si:getenv "TEMP"))
+				  (map-backslash-to-slash (si:getenv "TMP"))))))
+
+; パスマスク
+(setq *filer-path-masks*
+      '(("All Files"         "*")
+        ("Archives"          "*.lzh" "*.zip" "*.arc" "*.gz" "*.bz2" "*.tar" "*.taz" "*.tgz")
+        ("Java Source Files" "*.java")
+        ("Java Class Files"  "*.class")
+        ("C/C++ Files"       "*.c" "*.h" "*.cpp" "*.cxx" "*.cc" "*.inl")
+	("Perl Files"        "*.pl" "*.pm" "*.cgi")
+        ("Lisp Files"        "*.l" "*.el" "*.lsp" "*.lisp")
+        ("Execute Files"     "*.exe" "*.com" "*.bat" "*.pif")
+        ("Backup Files"      "*~" "*.bak")
+	("Save Files"        "#*#")))
+
+; ファイラのみ起動用の関数
+(defun filer-only ()
+  (if (open-filer)
+      #'(lambda () (interactive)
+	  (ShowWindow (get-window-handle) 3))
+    (kill-xyzzy))
+  )
+(export '(filer-only))
+
+;;---------------------------
+;; *scratch* をメモ代わりに使う
+;;  refer to http://womo.nconc.net/2005/10/26/save-scratch
+;;---------------------------
+;; *scratch* を終了時に保存
+(add-hook '*kill-xyzzy-hook*
+	  #'(lambda ()
+	      (save-excursion
+		(set-buffer (find-buffer "*scratch*"))
+		(write-file "~/.xyzzy.d/scratch.txt")
+		;; 毎回日付と時刻が含まれるファイル名で保存する(履歴もどき)
+		;;(unless (equal (point-min) (point-max))
+		;;  (write-file (format-date-string "~/.xyzzy.d/scratch/%Y%m%d_%H%M%S.txt")))
+		)))
+
+;; *scratch* を起動時にロード
+(add-hook '*post-startup-hook*
+	  #'(lambda ()
+	      (save-excursion
+		(set-buffer (find-buffer "*scratch*"))
+		(insert-file-contents "~/.xyzzy.d/scratch.txt" t))))
+
+;;; *scratch* な場合は nil を返してkillさせない
+;(add-hook '*query-kill-buffer-hook*
+;	  #'(lambda ()
+;	      (if (and (not *kill-buffer-kills-scratch*)
+;		       (equal (buffer-name (selected-buffer))
+;			      "*scratch*"))
+;		  nil
+;		t)))
+
+
+;;---------------------------
+;; paren
+;;---------------------------
+(require "paren")
+; いつでも
+;(turn-on-global-paren)
+; lisp-mode のときだけ
+(setq *lisp-mode-hook*
+      '(lambda ()
+	(setq *paren-highlight-only-paren* nil)
+	(setq *paren-paren-attribute* '(:underline t :bold t))
+	(setq *paren-show-not-visible-matched-paren* t)
+	(turn-on-paren)))
+(setq *lisp-interaction-mode-hook*
+      '(lambda ()
+	(setq *paren-highlight-only-paren* nil)
+	(setq *paren-paren-attribute* '(:underline t :bold t))
+	(setq *paren-show-not-visible-matched-paren* t)
+	(turn-on-paren)))
+
+
+;;---------------------------
+;; migemo
+;;---------------------------
+(require "migemo")
+(migemo-toggle t)
+
+
+;;---------------------------
+;; c-mode
+;;---------------------------
+; インデントはタブで
+(setq ed::*c-indent-tabs-mode* t)
+
+; インデント
+(setq ed::c-indent-level 8)
+(setq ed::c-continued-statement-offset 8)
+(setq ed::c-argdecl-indent 8)
+(setq ed::c-brace-offset 0)
+(setq ed::c-brace-imaginary-offset 0)
+(setq ed::c-label-offset -8)
+(setq ed::c-comment-indent 8)
+
+; paren
+(setq ed::*c-mode-hook*
+      '(lambda ()
+	(setq *paren-highlight-only-paren* t)
+	(setq *paren-paren-attribute* '(:underline t :bold t))
+	(setq *paren-show-not-visible-matched-paren* t)
+	(turn-on-paren)))
+
+
+;;---------------------------
+;; c++-mode
+;;---------------------------
+; インデントはタブで
+(setq ed::*c++-indent-tabs-mode* t)
+
+; インデント
+(setq ed::c++-indent-level 8)
+(setq ed::c++-continued-statement-offset 8)
+(setq ed::c++-argdecl-indent 8)
+(setq ed::c++-brace-offset 0)
+(setq ed::c++-brace-imaginary-offset 0)
+(setq ed::c++-label-offset -8)
+(setq ed::c++-comment-indent 8)
+
+; paren
+(setq ed::*c++-mode-hook*
+      '(lambda ()
+	(setq *paren-highlight-only-paren* t)
+	(setq *paren-paren-attribute* '(:underline t :bold t))
+	(setq *paren-show-not-visible-matched-paren* t)
+	(turn-on-paren)))
+
+
+;;---------------------------
+;; csharp-mode
+;;---------------------------
+; インデントはタブで
+(setq ed::*csharp-indent-tabs-mode* t)
+
+; インデント
+(setq ed::csharp-indent-level 8)
+(setq ed::csharp-continued-statement-offset 8)
+(setq ed::csharp-argdecl-indent 8)
+(setq ed::csharp-brace-offset 0)
+(setq ed::csharp-brace-imaginary-offset 0)
+(setq ed::csharp-label-offset -8)
+(setq ed::csharp-comment-indent 8)
+
+; paren
+(setq ed::*csharp-mode-hook*
+      '(lambda ()
+	(setq *paren-highlight-only-paren* t)
+	(setq *paren-paren-attribute* '(:underline t :bold t))
+	(setq *paren-show-not-visible-matched-paren* t)
+	(turn-on-paren)))
+
+;;---------------------------
+;; java-mode
+;;---------------------------
+; インデントはタブで
+(setq ed::*java-indent-tabs-mode* t)
+
+; インデント
+(setq ed::java-indent-level 8)
+(setq ed::java-continued-statement-offset 8)
+(setq ed::java-argdecl-indent 8)
+(setq ed::java-brace-offset 0)
+(setq ed::java-brace-imaginary-offset 0)
+(setq ed::java-label-offset -8)
+(setq ed::java-comment-indent 8)
+
+; paren
+(setq ed::*java-mode-hook*
+      '(lambda ()
+	(setq *paren-highlight-only-paren* t)
+	(setq *paren-paren-attribute* '(:underline t :bold t))
+	(setq *paren-show-not-visible-matched-paren* t)
+	(turn-on-paren)))
+
+; ant
+(require "ant")
+(use-package "ant")
+
+
+;;---------------------------
+;; perl-mode
+;;---------------------------
+; paren
+(setq ed::*perl-mode-hook*
+      '(lambda ()
+	(setq *paren-highlight-only-paren* t)
+	(setq *paren-paren-attribute* '(:underline t :bold t))
+	(setq *paren-show-not-visible-matched-paren* t)
+	(turn-on-paren)))
+
+
+;;---------------------------
+;; ruby-mode
+;;---------------------------
+(require "ruby-mode")
+(push '("\\.rb$" . ruby-mode) *auto-mode-alist*)
+
+; インデント量を変える。nilの時はタブを挿入
+(setq ed::*ruby-indent-column* nil)
+
+
+;;---------------------------
+;; python-mode
+;;---------------------------
+(require "py-mode")
+(push '("\\.py$" . py-mode) *auto-mode-alist*)
+
+
+;;---------------------------
+;; KaTeX
+;;---------------------------
+(push (merge-pathnames "site-lisp/katex"
+		       (map-backslash-to-slash (si:system-root)))
+      *load-path*)
+
+(require "elisp")
+(push '("\\.tex$" . elisp::katex-mode) *auto-mode-alist*)
+(autoload 'elisp::katex-mode "katex" t)
+; platex 使用
+(setq elisp::tex-command "platex-euc -src")
+; dviout のパス
+(setq elisp::dvi2-command "path/to/dviout/dviout")
+; jbibtex
+(setq elisp::bibtex-command "jbibtex -kanji=euc")
+
+; 折り返しを GNU Emacs のデフォルトに
+(setq elisp::KaTeX-fill-column 70)
+
+; euc-jp/lf で開く
+(add-hook 'elisp::katex-mode-hook
+	  #'(lambda()
+	      (progn
+		(set-buffer-fileio-encoding *encoding-euc-jp*)
+		(set-buffer-eol-code 0))))
+
+; ソースの対応箇所をプレビュー
+(defun katex-dvisrcprv ()
+  (interactive)
+  (let* ((tex-file (get-buffer-file-name))
+	 (dvi-file (el::KaTeX-get-preview-file-name)))
+    (call-process (concat el::dvi2-command " -1 " dvi-file " \"\# "
+			  (format nil "~D" (current-line-number)) " " tex-file "\"")
+		  :exec-directory (directory-namestring tex-file))))
+
+
+;;---------------------------
+;; html-mode
+;;---------------------------
+(autoload 'html-mode "html-mode" t)
+(pushnew '("\\.thtml$" . html-mode) *auto-mode-alist* :test 'equal)
+
+
+;;---------------------------
+;; javascript-mode
+;;---------------------------
+;(autoload 'javascript-mode "javascript-mode" t)
+;(pushnew '("\\.js$" . javascript-mode) *auto-mode-alist* :test 'equal)
+(load-library "javascript-mode")
+(push '("\\.js$" . javascript-mode) *auto-mode-alist*)
+(setq ed::*javascript-indent-level* 8)
+
+(defvar *javascript-mode-map* nil)
+(unless *javascript-mode-map*
+  (setq *javascript-mode-map* (make-sparse-keymap))
+  ;(define-key *javascript-mode-map* #\{ 'editor::javascript-electric-insert)
+  ;(define-key *javascript-mode-map* #\; 'editor::javascript-check-new-variable)
+  (define-key *javascript-mode-map* #\} 'editor::javascript-electric-close)
+  (define-key *javascript-mode-map* #\RET 'editor::javascript-newline-and-indent)
+  (define-key *javascript-mode-map* #\TAB 'editor::javascript-indent-line)
+  ;(define-key *javascript-mode-map* #\. 'editor::javascript-dot-notation)
+  ;(define-key *javascript-mode-map* #\C-h 'backward-delete-char-untabify-or-selection)
+  (define-key *javascript-mode-map* #\C-M-q 'indent-sexp)
+  (define-key *javascript-mode-map* '(#\C-x #\j) 'editor::javascript-goto-function)
+  (define-key *javascript-mode-map* '(#\C-x #\t) 'editor::javascript-yank-from-template)
+  ;(define-key *javascript-mode-map* #\C-\/ 'editor::javascript-toggle-comment)
+  )
+
+
+;;---------------------------
+;; css-mode
+;;---------------------------
+(require "css-mode")
+; indent
+(defvar *css-indent-level* 2)
+(defvar *css-continued-statement-offset* 2)
+(defvar *css-brace-offset* -2)
+(defvar *css-brace-imaginary-offset* 0)
+(defvar *css-argdecl-indent* 0)
+(defvar *css-label-offset* 0)
+; keymap
+(define-key *css-mode-map* #\{ 'c-electric-insert)
+(define-key *css-mode-map* #\: 'c-electric-insert)
+(define-key *css-mode-map* #\} 'c-electric-close)
+(define-key *css-mode-map* #\C-h 'backward-delete-char-untabify-or-selection)
+(define-key *css-mode-map* #\TAB 'c-indent-line)
+(define-key *css-mode-map* #\C-M-q 'indent-sexp)
+(define-key *css-mode-map* #\RET 'c-newline-and-indent)
+(define-key *css-mode-map* #\C-. 'ed::css-completion)
+
+; function for hook
+(defun css-enhance ()
+  ;; indent command
+  (make-local-variable 'mode-specific-indent-command)
+  (make-local-variable 'c-comment-indent-variable)
+  (setq c-comment-indent-variable 'c-comment-indent)
+  (setq mode-specific-indent-command 'c-indent-line)
+  ; indent
+  (make-local-variable 'c-indent-level)
+  (make-local-variable 'c-continued-statement-offset)
+  (make-local-variable 'c-brace-offset)
+  (make-local-variable 'c-brace-imaginary-offset)
+  (make-local-variable 'c-argdecl-indent)
+  (make-local-variable 'c-label-offset)
+  (setq c-indent-level *css-indent-level*)
+  (setq c-continued-statement-offset *css-continued-statement-offset*)
+  (setq c-brace-offset *css-brace-offset*)
+  (setq c-brace-imaginary-offset *css-brace-imaginary-offset*)
+  (setq c-argdecl-indent *css-argdecl-indent*)
+  (setq c-label-offset *css-label-offset*)
+  ; comment
+  (setq comment-indent-function 'c-comment-indent)
+  (setq comment-start "/* " comment-end " */")
+  (setq comment-start-skip "/\\(\\*+\\|/\\)[ \t]*"))
+; hook
+(add-hook '*css-mode-hook* 'css-enhance)
+
+
+;;---------------------------
+;; ini-mode
+;;---------------------------
+(export 'ed::ini-mode "ed")
+(autoload 'ini-mode "ini-mode" t)
+(pushnew '("\\.ini$" . ini-mode) *auto-mode-alist* :test 'equal)
+
+
+;;---------------------------
+;; bat-mode
+;;---------------------------
+(export 'ed::bat-mode "ed")
+(autoload 'bat-mode "bat-mode" t)
+(pushnew '("\\.bat$" . bat-mode) *auto-mode-alist* :test 'equal)
+
+
+;;---------------------------
+;; bash-mode
+;;---------------------------
+(export 'ed::bash-mode "ed")
+(autoload 'bash-mode "bash-mode" t)
+(pushnew '("\\.sh$" . bash-mode) *auto-mode-alist* :test 'equal)

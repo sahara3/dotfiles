@@ -1,0 +1,39 @@
+;;; ~/.skk  -*- Mode: lisp -*-
+
+(in-package "skk")
+
+(export '(*skk-kutouten-alist*
+	  *skk-kutouten-type*
+	  skk-change-kutouten))
+
+(defvar *skk-kutouten-alist*
+  '((jp . ("。" . "、"))
+    (en . ("．" . "，"))))
+
+(defvar *skk-kutouten-type* 'jp) 
+
+; katex-mode 中は句読点を英語風に
+(setq *skk-kutouten-type*
+  (if (string-equal mode-name "かてふ") 'en 'jp))
+
+(defun skk-set-kutouten (kutouten)
+  (setf (aref *skk-input-vector* (char-code #\.)) (car kutouten))
+  (setf (aref *skk-input-vector* (char-code #\,)) (cdr kutouten)))
+
+(defun skk-find-kutouten-type (s)
+  (cdr (assoc s (mapcar (lambda (x)
+			  (let ((y (car x)))
+			    (cons (symbol-name y) y)))
+			*skk-kutouten-alist*) :test #'string=)))
+
+(defun skk-change-kutouten (type)
+  (interactive
+      (list
+       (skk-find-kutouten-type
+	(completing-read "Please enter new kutouten type: "
+			 (mapcar #'car *skk-kutouten-alist*) :must-match t))))
+  (skk-set-kutouten (cdr (assoc type *skk-kutouten-alist*))))
+
+(skk-set-kutouten (cdr (assoc *skk-kutouten-type* *skk-kutouten-alist*)))
+
+;; Last modified: 2006-09-17

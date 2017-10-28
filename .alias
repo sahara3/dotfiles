@@ -1,0 +1,36 @@
+## Aliases and functions for B-shell
+## -*- mode: shell-script -*-
+
+function command_exists {
+    which $1 >/dev/null 2>&1
+    return $?
+}
+
+# ls
+alias ls='ls -F --color=auto --show-control-chars'
+alias ll='ls -la'
+alias la='ls -a'
+alias l='ls -CF'
+
+# for windows
+if [ $(is_windows) ]; then
+    if [ ! $(command_exists vi) ]; then
+	alias vi='vim'
+    fi
+    if [ ! $(command_exists emacs) ]; then
+	alias emacs=/opt/emacs/bin/runemacs
+    fi
+
+    function ping {
+	$(cygpath -u c:/Windows/system32/ping) -t $* | \
+	    while read line; do echo $line | iconv -f sjis -t utf-8; done
+    }
+
+    function nslookup {
+	$(cygpath -u c:/Windows/system32/nslookup) $* | iconv -f sjis -t utf-8
+    }
+
+    function netstat {
+	$(cygpath -u c:/Windows/system32/netstat) $* | iconv -f sjis -t utf-8
+    }
+fi
