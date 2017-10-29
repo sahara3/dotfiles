@@ -13,6 +13,11 @@
 	     '("org" . "http://orgmode.org/elpa/") t)
 (package-initialize)
 
+;;; server start for emacs-client
+(require 'server)
+(unless (server-running-p)
+  (server-start))
+
 ;;; set language and input method
 (set-language-environment "Japanese")
 (set-terminal-coding-system 'utf-8)
@@ -89,49 +94,7 @@
 (require 'scratch-log)
 
 ;; save frame size and position
-(defconst my-save-frame-file "~/.emacs.d/.framesize"
-  "Path to the save file of frame size and position.")
-
-(defun my-save-frame-size()
-  "Save the current frame size and position into `my-save-frame-file'."
-  (interactive)
-  (let* ((param (frame-parameters (selected-frame)))
-         (current-height (frame-height))
-         (current-width (frame-width))
-         (current-top-margin (if (integerp (cdr (assoc 'top param)))
-                                 (cdr (assoc 'top param))
-                                 0))
-         (current-left-margin (if (integerp (cdr (assoc 'left param)))
-                                  (cdr (assoc 'left param))
-                                  0))
-         (buf nil)
-         (file my-save-frame-file)
-         )
-    ;; create a buffer related to the file
-    (unless (setq buf (get-file-buffer (expand-file-name file)))
-      (setq buf (find-file-noselect (expand-file-name file))))
-    (set-buffer buf)
-    (erase-buffer)
-    ;; evaluated when loading the file.
-    (insert
-     (concat
-      "(set-frame-size (selected-frame)\n"
-      (int-to-string current-width)" "(int-to-string current-height)")\n"
-      "(set-frame-position (selected-frame)\n"
-      (int-to-string current-left-margin)" "(int-to-string current-top-margin)")\n"
-      ))
-    (save-buffer)))
-
-(defun my-load-frame-size()
-  "Restore frame size and position saved in `my-save-frame-file'."
-  (interactive)
-  (let ((file my-save-frame-file))
-    (when (file-exists-p file)
-        (load-file file))))
-
-(add-hook 'emacs-startup-hook 'my-load-frame-size)
-(add-hook 'kill-emacs-hook 'my-save-frame-size)
-(run-with-idle-timer 60 t 'my-save-frame-size)
+(desktop-save-mode 1)
 
 ;;; saving
 ;; do not save automatically
@@ -159,27 +122,48 @@
              ))
 
 ;; gradle-mode
-(add-to-list 'auto-minor-mode-alist '("\\.gradle\\'" . gradle-mode))
+(if (>= emacs-major-version 25)
+    (progn
+      (add-to-list 'auto-minor-mode-alist '("\\.gradle\\'" . gradle-mode))
+      ))
 
 ;; web-mode
-(add-hook 'web-mode-hook '(lambda ()
-			    ;; indent
-			    ;;(setq web-mode-attr-indent-offset nil)
-			    (setq web-mode-markup-indent-offset 2)
-			    (setq web-mode-css-indent-offset 2)
-			    (setq web-mode-style-padding 2)
-			    (setq web-mode-code-indent-offset 4)
-			    (setq web-mode-script-padding 2)
-			    (setq web-mode-sql-indent-offset 2)
-			    (setq indent-tabs-mode nil)
-			    (setq tab-width 2)
+(add-hook 'web-mode-hook
+	  '(lambda ()
+	     ;; indent
+	     ;;(setq web-mode-attr-indent-offset nil)
+	     (setq web-mode-markup-indent-offset 2)
+	     (setq web-mode-css-indent-offset 2)
+	     (setq web-mode-style-padding 2)
+	     (setq web-mode-code-indent-offset 4)
+	     (setq web-mode-script-padding 2)
+	     (setq web-mode-sql-indent-offset 2)
+	     (setq indent-tabs-mode nil)
+	     (setq tab-width 2)
 
-			    ;; auto tag closing
-			    ;; 0: no auto-closing
-			    ;; 1: auto-close with </
-			    ;; 2: auto-close with > and </
-			    (setq web-mode-tag-auto-close-style 2)
-			    ))
+	     ;; auto tag closing
+	     ;; 0: no auto-closing
+	     ;; 1: auto-close with </
+	     ;; 2: auto-close with > and </
+	     (setq web-mode-tag-auto-close-style 2)
+	     ))
+
+(add-to-list 'auto-mode-alist '("\\.html?$" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.jsp$" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.tag$" . web-mode))
+(setq web-mode-engines-alist '(("riot" . "\\.tag\\'")))
+
+;; customize
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(inhibit-startup-screen t)
+ '(package-selected-packages
+   (quote
+    (scratch-log typescript-mode arjen-grey-theme gradle-mode groovy-mode web-mode)))
+ '(safe-local-variable-values (quote ((syntax . elisp)))))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -198,23 +182,6 @@
  '(web-mode-html-attr-value-face ((t (:foreground "#D78181"))))
  '(web-mode-html-tag-face ((t (:foreground "#4A8ACA"))))
  '(web-mode-server-comment-face ((t (:foreground "#587F35")))))
-
-(add-to-list 'auto-mode-alist '("\\.html?$" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.jsp$" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.tag$" . web-mode))
-(setq web-mode-engines-alist '(("riot" . "\\.tag\\'")))
-
-;; customize
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(inhibit-startup-screen t)
- '(package-selected-packages
-   (quote
-    (scratch-log typescript-mode arjen-grey-theme gradle-mode groovy-mode web-mode)))
- '(safe-local-variable-values (quote ((syntax . elisp)))))
 
 ;;;
 ;;; end of file

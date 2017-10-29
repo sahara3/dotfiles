@@ -48,7 +48,12 @@ alias cp='nocorrect cp'
 alias mkdir='nocorrect mkdir'
 alias .=source
 
+# source the machine-dependent environments if it exists
+if [ -e "${HOME}/.env" ]; then
+    source "${HOME}/.env"
+fi
+
 # source the users' aliases if it exists
-if [ -f "${HOME}/.alias" ]; then
-    source "${HOME}/.alias"
+if [ -f "${HOME}/.aliases" ]; then
+    source "${HOME}/.aliases"
 fi

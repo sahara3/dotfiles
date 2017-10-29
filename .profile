@@ -2,20 +2,9 @@
 
 umask 022
 
-function is_windows {
-    if [ $(uname -o) = Cygwin -o $(uname -o) = Msys ]; then
-	return 0
-    fi
-    return 1
-}
-
 # basic profiles
-#export USER=`id -un`
-#export USERNAME="Soichiro SAHARA"
-#export HOST=`hostname`
+export USERNAME="Soichiro SAHARA"
 export LANG=ja_JP.UTF-8
-#export TZ=JST-09
-#export DISPLAY=localhost:0.0
 
 export PAGER=less
 export LESS=fMr
@@ -37,20 +26,17 @@ if [ -d "${HOME}/info" ]; then
     echo $INFOPATH | grep -q "${HOME}/info" || INFOPATH=${HOME}/info:${INFOPATH}
 fi
 
-# source the machine-dependent environments if it exists
-if [ -e "${HOME}/.env" ]; then
-    source "${HOME}/.env"
-fi
-
 # special pathes for cygwin or msys
-if [ $(is_windows) ]; then
-    if [ ! -z $JAVA_HOME ]; then
-	JAVA_HOME=$(cygpath $JAVA_HOME)
-	PATH=$JAVA_HOME/bin:$PATH
-    fi
-    if [ ! -z $GRADLE_HOME ]; then
-	GRADLE_HOME=$(cygpath $GRADLE_HOME)
-    fi
-    export PATH
+function windows_path {
+    echo $1 | grep '\\' >/dev/null 2>&1 && return 0
+    return 1
+}
+
+if [ $(windows_path $JAVA_HOME) ]; then
+    export JAVA_HOME=`cygpath $JAVA_HOME`
+    export PATH=$JAVA_HOME/bin:$PATH
 fi
 
+if [ $(windows_path $GRADLE_HOME) ]; then
+    export GRADLE_HOME=`cygpath $GRADLE_HOME`
+fi

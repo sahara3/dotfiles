@@ -6,7 +6,7 @@ if [ -e /etc/bash.bashrc ] ; then
 fi
 
 # source the common users' settings if it exists
-if [ -e "${HOME}" ]; then
+if [ -e "${HOME}/.profile" ]; then
     source "${HOME}/.profile"
 fi
 

@@ -1,0 +1,54 @@
+## -*- mode: shell-script -*-
+## ~/.aliases: aliases and functions for B-shell.
+
+function is_windows {
+    if [ $(uname -o) = Cygwin -o $(uname -o) = Msys ]; then
+	return 0
+    fi
+    return 1
+}
+
+function command_exists {
+    which $1 >/dev/null 2>&1
+    return $?
+}
+
+# ls
+alias ls='ls -F --color=auto --show-control-chars'
+alias ll='ls -la'
+alias la='ls -a'
+alias l='ls -CF'
+
+# grep
+alias grep='grep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias egrep='egrep --color=auto'
+
+# for windows
+if [ $(is_windows) ]; then
+    if [ ! $(command_exists vi) ]; then
+	alias vi='vim'
+    fi
+
+    alias emacs=runemacs
+
+    function ping {
+	`cygpath -u c:/Windows/system32/ping` -t $* | \
+	    while read line; do echo $line | iconv -f sjis -t utf-8; done
+    }
+
+    function nslookup {
+	`cygpath -u c:/Windows/system32/nslookup` $* | iconv -f sjis -t utf-8
+    }
+
+    function netstat {
+	`cygpath -u c:/Windows/system32/netstat` $* | iconv -f sjis -t utf-8
+    }
+fi
+
+# emacs
+function emacs-server {
+    `/bin/which emacs` >/dev/null 2>&1 &
+}
+
+alias emacs='emacsclient -n'
