@@ -28,15 +28,15 @@ fi
 
 # special pathes for cygwin or msys
 function windows_path {
-    echo $1 | grep '\\' >/dev/null 2>&1 && return 0
-    return 1
+    echo $1 | grep '\\' >/dev/null 2>&1
+    echo $?
 }
 
-if [ $(windows_path $JAVA_HOME) ]; then
+if [ $(windows_path $JAVA_HOME) = 0 ]; then
     export JAVA_HOME=`cygpath $JAVA_HOME`
     export PATH=$JAVA_HOME/bin:$PATH
 fi
 
-if [ $(windows_path $GRADLE_HOME) ]; then
+if [ $(windows_path $GRADLE_HOME) = 0 ]; then
     export GRADLE_HOME=`cygpath $GRADLE_HOME`
 fi

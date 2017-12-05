@@ -1,5 +1,8 @@
 ;;; ~/.xyzzy  -*- Mode:lisp -*-
 
+;; ファイル保存時の一時ファイル作成を無効化
+(setq file-precious-flag nil)
+
 ;; 漢字コード・改行コードの初期設定（euc-jp/lf）
 ;(setq *default-fileio-encoding* *encoding-euc-jp*)
 ;(setq *default-eol-code* *eol-lf*)

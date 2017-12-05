@@ -3,14 +3,15 @@
 
 function is_windows {
     if [ $(uname -o) = Cygwin -o $(uname -o) = Msys ]; then
-	return 0
+	echo 0
+    else
+        echo 1
     fi
-    return 1
 }
 
 function command_exists {
     which $1 >/dev/null 2>&1
-    return $?
+    echo $?
 }
 
 # ls
@@ -25,8 +26,8 @@ alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
 # for windows
-if [ $(is_windows) ]; then
-    if [ ! $(command_exists vi) ]; then
+if [ $(is_windows) = 0 ]; then
+    if [ $(command_exists vi) != 0 ]; then
 	alias vi='vim'
     fi
 
@@ -47,8 +48,4 @@ if [ $(is_windows) ]; then
 fi
 
 # emacs
-function emacs-server {
-    `/bin/which emacs` >/dev/null 2>&1 &
-}
-
-alias emacs='emacsclient -n'
+alias emacs="emacsclient -a emacs"

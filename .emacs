@@ -14,9 +14,9 @@
 (package-initialize)
 
 ;;; server start for emacs-client
-(require 'server)
-(unless (server-running-p)
-  (server-start))
+;(require 'server)
+;(unless (server-running-p)
+;  (server-start))
 
 ;;; set language and input method
 (set-language-environment "Japanese")
