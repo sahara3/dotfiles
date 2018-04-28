@@ -127,6 +127,22 @@
       (add-to-list 'auto-minor-mode-alist '("\\.gradle\\'" . gradle-mode))
       ))
 
+;; js-mode
+(add-hook 'js-mode-hook
+	  '(lambda ()
+	     (setq js-indent-level 4)
+	     (setq tab-width 8)
+	     (setq indent-tabs-mode nil)
+	     ))
+
+;; typescript-mode
+(add-hook 'typescript-mode-hook
+	  '(lambda ()
+	     (setq typescript-indent-level 4)
+	     (setq tab-width 8)
+	     (setq indent-tabs-mode nil)
+	     ))
+
 ;; web-mode
 (add-hook 'web-mode-hook
 	  '(lambda ()
